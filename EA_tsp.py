@@ -7,14 +7,16 @@ tsp_instance = tsplib95.load('qa194.tsp')
 G = tsp_instance.get_graph()
 
 def init_tsp_pop(tsp, n):
-    '''
-    Selects random complete tours from the TSP problem 
+    """ Selects random complete tours from the TSP problem 
     to create the initial population.
 
-    input:
-        tsp -- an instance of the TSP problem
-        n -- the size of the initial population required
-    '''
+    Args:
+        tsp:  an instance of the TSP problem
+        n: the size of the initial population required
+
+    Returns:
+        list: a list of random Hamiltonian tours of the TSP complete graph.
+    """    
     pop = []
     nodes = list(tsp.get_nodes())
     random_path = []
@@ -31,17 +33,17 @@ def init_tsp_pop(tsp, n):
 
 
 def fitness(chrom, tsp):
-    """ 
-    Calculates the fitness of a single chromosome 
+    """ Calculates the fitness of a single chromosome 
     of the TSP problem. 
-    
-    input:  
-        chrom -- a chromosome from the population 
-        tsp -- an instance of the TSP problem
-    output:
-        fit -- the cost (fitness) of the path
+
+    Args:
+        chrom: a chromosome from the population 
+        tsp: an instance of the TSP problem
+
+    Returns:
+        int: the cost (fitness) of the path
     """
-    
+
     fit = 0
     for i in range(len(chrom)-1):
         cost = tsp.get_weight(chrom[i], chrom[i+1])
@@ -49,12 +51,14 @@ def fitness(chrom, tsp):
     return fit
 
 def fitnesses(population, tsp):
-    """
-    Creates a list of fitnesses of the population.
+    """Creates a list of fitnesses of the population.
 
-    input:
-        population -- the population whose fitnesses need to be calculated
-        tsp -- the instance of the TSP problem. 
+    Args:
+        population: the population whose fitnesses need to be calculated.
+        tsp: the instance of the TSP problem. 
+
+    Returns:
+        list: a list of fitnesses of the population.
     """
     fitnesses = []
     for i in range(len(population)):
@@ -62,6 +66,7 @@ def fitnesses(population, tsp):
     return fitnesses
 
 def roulette2(population, fitnesses):
+
     new_pop = []
     divs = []
     s_fit = sum(fitnesses)
