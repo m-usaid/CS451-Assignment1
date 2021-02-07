@@ -5,9 +5,16 @@ import networkx as nx
 
 tsp_instance = tsplib95.load('qa194.tsp')
 G = tsp_instance.get_graph()
-#print(tsp_instance.get_weight(1,2))
 
 def init_tsp_pop(tsp, n):
+    '''
+    Selects random complete tours from the TSP problem 
+    to create the initial population.
+
+    input:
+        tsp -- an instance of the TSP problem
+        n -- the size of the initial population required
+    '''
     pop = []
     nodes = list(tsp.get_nodes())
     random_path = []
@@ -23,59 +30,58 @@ def init_tsp_pop(tsp, n):
     return pop
 
 
-# dummy fitness function 
 def fitness(chrom, tsp):
-    #nodes = list(tsp.get_nodes())
+    """ 
+    Calculates the fitness of a single chromosome 
+    of the TSP problem. 
+    
+    input:  
+        chrom -- a chromosome from the population 
+        tsp -- an instance of the TSP problem
+    output:
+        fit -- the cost (fitness) of the path
+    """
+    
     fit = 0
     for i in range(len(chrom)-1):
         cost = tsp.get_weight(chrom[i], chrom[i+1])
         fit += cost
     return fit
 
-def fitness2(chrom):
-    return sum(chrom)
-
 def fitnesses(population, tsp):
+    """
+    Creates a list of fitnesses of the population.
+
+    input:
+        population -- the population whose fitnesses need to be calculated
+        tsp -- the instance of the TSP problem. 
+    """
     fitnesses = []
     for i in range(len(population)):
         fitnesses.append(fitness(population[i], tsp))
-    print(fitnesses)
     return fitnesses
 
-def fitnesses2(population):
-    fitnesses = []
-    for i in range(len(population)):
-        fitnesses.append(fitness2(population[i]))
-    print(fitnesses)
-    return fitnesses
-
-def roulette(population, fitnesses, num):
+def roulette2(population, fitnesses):
     new_pop = []
-    while num > 0:
-        p = random.uniform(0, sum(fitnesses))
-        for i, f in enumerate(fitnesses):
-            if p <= 0:
-                break
-            p -= (1/f)
-        new_pop.append(population[i]) 
-        num -= 1
-    print(new_pop)  
-    return new_pop
-
-def roulette2(population, fitnesses, num):
-    new_pop = []
+    divs = []
     s_fit = sum(fitnesses)
     rel_fit = [(1/i)*s_fit for i in fitnesses]
     probs = [rel_fit[i]/sum(rel_fit) for i in range(len(rel_fit))]
-    print(probs)
-    while num > 0:
-        for i in range(len(fitnesses)):
-            pass
+    s_probs = 0
+    num = len(population)
+    for i in range(len(probs)):
+        divs.append(s_probs+probs[i])
+        s_probs += probs[i]
+    while len(new_pop) < 15:
+        r = random.uniform(0, 1)
+        for i in range(len(population)):
+            if r > divs[i] and r < divs[i+1]:
+                new_pop.append(population[i])
+    return new_pop
 
+pop = init_tsp_pop(tsp_instance, 15)
+fit = fitnesses(pop, tsp_instance)
+roulette2(pop, fit)
 
-
-pop = [[1,3,5,41,6], [1,5,8,4,2], [2,7,4,15,1], [6,3,9,1,2], [1,5,8,3,6], [2,4,9,3,5]]
-
-#pop = init_tsp_pop(tsp_instance, 10)
-fit = fitnesses2(pop)
-roulette2(pop, fit, 4)
+def EA_TSP():
+    pass
