@@ -4,6 +4,10 @@ import matplotlib.pyplot as plt
 import networkx as nx
 
 
+#############################################
+######### POPULATION INITIALIZATION ######### 
+#############################################
+
 def init_tsp_pop(tsp, n):
     """ Selects random complete tours from the TSP problem 
     to create the initial population.
@@ -30,7 +34,15 @@ def init_tsp_pop(tsp, n):
     return pop
 
 
-def fitness(chrom, tsp):
+def init_knpsk_pop():
+    pass
+
+######################################
+######### FITNESS EVALUATION ######### 
+######################################
+
+
+def fitness_tsp(chrom, tsp):
     """ Calculates the fitness of a single chromosome 
     of the TSP problem. 
 
@@ -48,7 +60,7 @@ def fitness(chrom, tsp):
         fit += cost
     return fit
 
-def fitnesses(population, tsp):
+def fitnesses_tsp(population, tsp):
     """Creates a list of fitnesses of the population.
 
     Args:
@@ -60,12 +72,33 @@ def fitnesses(population, tsp):
     """
     fitnesses = []
     for i in range(len(population)):
-        fitnesses.append(fitness(population[i], tsp))
+        fitnesses.append(fitness_tsp(population[i], tsp))
     return fitnesses
 
 
-def select_fps(population, fitnesses):
-    """Generates a new population based on fitness proportional scheme.
+def rel_fit_min(fitnesses):
+    rel_fit = []
+    s_fit = sum(fitnesses)
+    rel_fit = [(1/i)*s_fit for i in fitnesses]
+    return rel_fit
+
+def fitness_knpsk():
+    pass
+
+
+def fitnesses_knpsk():
+    pass
+
+#################################################################
+#################################################################   
+
+
+##########################################################
+######### PARENT SELECTION SCHEMA (MINIMIZATION) ######### 
+##########################################################
+
+def select_fps_min(population, fitnesses):
+    """Generates parents based on fitness proportional scheme.
 
     Args:
         population (list): the population on which  FPS is applied 
@@ -76,9 +109,9 @@ def select_fps(population, fitnesses):
     """
     parents = []
     divs = []
-    s_fit = sum(fitnesses)
-    rel_fit = [(1/i)*s_fit for i in fitnesses]
+    rel_fit = rel_fit_min(fitnesses)
     probs = [rel_fit[i]/sum(rel_fit) for i in range(len(rel_fit))]
+
     s_probs = 0
     for i in range(len(probs)):
         divs.append(s_probs+probs[i])
@@ -91,6 +124,28 @@ def select_fps(population, fitnesses):
                 parents.append(population[i]) 
                 continue 
     return parents 
+
+def select_bin_tour_min(population, tsp):
+    parents = []
+    while len(parents) < 2:
+        best = None 
+        for i in range(2):
+            ind = population[random.randint(0, len(population)-1)]
+            if (best == None) or (fitness_tsp(ind, tsp) < fitness_tsp(best, tsp)):
+                best = ind
+        parents.append(best)
+    return parents 
+
+
+
+#################################################################
+#################################################################
+
+
+
+########################################
+######### REPRODUCTION METHODS ######### 
+########################################
 
 def crossover(parent: list):
     child1 = []
@@ -106,16 +161,26 @@ def crossover(parent: list):
     child = child2[:startgene] + child1 + child2[startgene:]
     return child 
 
-def create_offspring(population, fitnesses, num_offspring = 10):
+def create_offspring(population, fitnesses, parent_sel, tsp, num_offspring = 10):
     offspring = []
     while len(offspring) < num_offspring:
         parents = []
-        parents = select_fps(population, fitnesses)
+        if parent_sel == "fps":
+            parents = select_fps_min(population, fitnesses)
+        elif parent_sel == "tourny":
+            parents = select_bin_tour_min(population, tsp)
         child = []
         pot_parents = random.sample(parents, 2)
         child = crossover(pot_parents)
         offspring.append(child)
     return offspring
+
+#################################################################
+#################################################################
+
+###############################
+###### VARIATION METHODS ######
+###############################
 
 def mutate(chrom):
     gene1 = random.randint(0, len(chrom)-1)
@@ -132,51 +197,65 @@ def variate(offspring, p_m = 0.3):
             offspring[i] = mutate(offspring[i])  
     return offspring
 
+#################################################################
+#################################################################
+
+
+#############################################
+######### SURVIVOR SELECTION SCHEMA ######### 
+#############################################
+
+## NOT WORKING
 def selectsurvivors_fps(population, fitnesses, pop_size=30):
     nextgen = []
     while len(nextgen) < pop_size:
-        tmp = select_fps(population, fitnesses)
+        tmp = select_fps_min(population, fitnesses)
         nextgen.append(tmp[0])
         nextgen.append(tmp[1])
     return nextgen
 
 def survivor_trunc(population,tsp, pop_size=30):
+    """Truncation based survivor scheme.
+
+    Args:
+        population (list): The population from which survivors are chosen.
+        tsp: An instance of the TSP problem.
+        pop_size (int, optional): The population size that is maintained in the EA. Defaults to 30.
+
+    Returns:
+        [list]: A list of survivors that will be the population for the next generation.
+    """
     surv = []
-    surv = sorted(population, key=lambda fit: fitness(fit, tsp))
+    surv = sorted(population, key=lambda fit: fitness_tsp(fit, tsp))
     surv = surv[:pop_size]
-    #sprint(fitnesses(surv, tsp))
     return surv
 
-def EA(tsp, num_gens = 1000, p_m=0.5, pop_size=30):
+#################################################################
+#################################################################
+
+
+def EA(tsp, parent_sel, num_gens = 5000, p_m=0.5, pop_size=30):
     pop = init_tsp_pop(tsp_instance, pop_size)
     t = 0
     while t < num_gens:
-        fits = fitnesses(pop, tsp)
-        offspring = create_offspring(pop, fits)
-        #print(fitnesses(offspring, tsp))
+        fits = fitnesses_tsp(pop, tsp)
+        offspring = create_offspring(pop, fits, parent_sel, tsp)
         offspring = variate(offspring)
         pop += offspring 
-        fits = fitnesses(pop, tsp)
+        fits = fitnesses_tsp(pop, tsp)
         pop = survivor_trunc(pop, tsp)
         t += 1
         print(min(fits))
 
-# p1 = [1,5,4,3,8,9]
-p2 = [3,7,2,1,4,5]
-p = [[1,5,4,3,8,9], [3,7,2,5,4,5], [3,7,2,1,4,5]]
+####################################################################
+####################################################################
 
-#tsp_instance = tsplib95.load('qa194.tsp')
-
-#print(fitness(pop[9], tsp_instance))
-# print(min(fitnesses(pop, tsp_instance)))
-# fit = fitnesses(pop, tsp_instance)
-# create_offspring(pop, fit)
-
-# fit = fitnesses(pop, tsp_instance)
-
-#print(survivor_trunc(p))
+# # p1 = [1,5,4,3,8,9]
+# p2 = [3,7,2,1,4,5]
+# p = [[1,5,4,3,8,9], [3,7,2,5,4,5], [3,7,2,1,4,5]]
 
 tsp_instance = tsplib95.load('wi29.tsp')
-pop = init_tsp_pop(tsp_instance, 50)
-#survivor_trunc(pop, tsp_instance)
-EA(tsp_instance)
+#pop = init_tsp_pop(tsp_instance, 50)
+#print(select_bin_tour_min(pop, tsp_instance))
+# #survivor_trunc(pop, tsp_instance)
+EA(tsp_instance, "tourny")
