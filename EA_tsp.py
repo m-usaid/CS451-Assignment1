@@ -1,10 +1,9 @@
 ## TO DO:
 #   - Implement parent selection:
 #       - Random 
-#       - Truncation 
-
-
-
+#   - Survivor selection schemes:
+#       - Fix FPS for survivors 
+#       - Random 
 
 
 import tsplib95
@@ -108,32 +107,41 @@ def rel_fit_min(population, tsp):
 ######### PARENT SELECTION SCHEMA (MINIMIZATION) ######### 
 ##########################################################
 
+# def select_fps(population, fitnesses):
+#     ### GENERAL -> USE FOR BOTH TSP AND KNPSCK
+#     """Generates parents based on fitness proportional scheme.
+
+#     Args:
+#         population (list): the population on which  FPS is applied 
+#         fitnesses (list): the fitnesses of the population on which FPS will be applied. 
+
+#     Returns:
+#         list: a list of size 2 containing two parent chromosomes.
+#     """
+#     parents = []
+#     divs = []
+#     probs = [fitnesses[i]/sum(fitnesses) for i in range(len(fitnesses))]
+
+#     s_probs = 0
+#     for i in range(len(probs)):
+#         divs.append(s_probs+probs[i])
+#         s_probs += probs[i]
+#     while len(parents) < 2:
+#         r = random.uniform(0, 1)
+#         for i in range(len(population)):
+#             if r > divs[i] and r < divs[i+1]:
+#                 parents.append(population[i]) 
+#                 continue 
+#     return parents 
+
 def select_fps(population, fitnesses):
-    ### GENERAL -> USE FOR BOTH TSP AND KNPSCK
-    """Generates parents based on fitness proportional scheme.
-
-    Args:
-        population (list): the population on which  FPS is applied 
-        fitnesses (list): the fitnesses of the population on which FPS will be applied. 
-
-    Returns:
-        list: a list of size 2 containing two parent chromosomes.
-    """
-    parents = []
-    divs = []
-    probs = [fitnesses[i]/sum(fitnesses) for i in range(len(fitnesses))]
-
-    s_probs = 0
-    for i in range(len(probs)):
-        divs.append(s_probs+probs[i])
-        s_probs += probs[i]
-    while len(parents) < 2:
-        r = random.uniform(0, 1)
-        for i in range(len(population)):
-            if r > divs[i] and r < divs[i+1]:
-                parents.append(population[i]) 
-                continue 
-    return parents 
+    s_fit = 0
+    cum_fit = []
+    for i in range(len(population)):
+        cum_fit.append(s_fit + fitnesses[i])
+        s_fit += fitnesses[i]
+    parents = random.choices(population, cum_weights=cum_fit, k=2)
+    return parents
 
 
 def select_bin_tour_min(population, tsp):
@@ -188,15 +196,14 @@ def rank_select_min(population, tsp):
 
   
 
-def select_trunc_min(population, num, tsp):
-    pass
-#     surv = []
-#     surv = sorted(population, key=lambda fit: fitness_tsp(fit, tsp))
-#     surv = surv[:num]
-#     return surv
+def select_trunc_min(population, num_offspring, tsp):
+    parent_pop = survivor_trunc_min(population, tsp, num_offspring * 2)
+    parents = select_bin_tour_min(parent_pop, tsp)
+    return parents
 
 def select_random(population):
-    pass 
+    parents = random.choices(population, k=2)
+    return parents  
 
 
 ########################################
@@ -248,6 +255,10 @@ def create_offspring_min(population, parent_sel, tsp, num_offspring):
             parents = select_bin_tour_min(population, tsp)
         elif parent_sel == "rank":
             parents = rank_select_min(population, tsp)
+        elif parent_sel == "trunc":
+            parents = select_trunc_min(population, num_offspring, tsp)
+        elif parent_sel == "rand":
+            parents = select_random(population)
         child = []
         pot_parents = random.choices(parents, k=2)
         child = crossover(pot_parents)
@@ -283,12 +294,37 @@ def variate(offspring, p_m):
 #############################################
 
 ## NOT WORKING
+# def survivor_fps(population, fitnesses, pop_size):
+#     nextgen = []
+#     while len(nextgen) < pop_size:
+#         tmp = select_fps(population, fitnesses)
+#         nextgen.append(tmp[0])
+#         nextgen.append(tmp[1])
+#     return nextgen
+
+# def survivor_fps(population, fitnesses, pop_size):
+#     next_gen = []
+#     divs = []
+#     probs = [fitnesses[i]/sum(fitnesses) for i in range(len(fitnesses))]
+#     s_probs = 0
+#     for i in range(len(probs)):
+#         divs.append(s_probs+probs[i])
+#         s_probs += probs[i]
+#     while len(next_gen) < pop_size:
+#         r = random.uniform(0, 1)
+#         for i in range(len(population)):
+#             if r > divs[i] and r < divs[i+1]:
+#                 next_gen.append(population[i]) 
+#                 continue 
+#     return next_gen
+
 def survivor_fps(population, fitnesses, pop_size):
-    nextgen = []
-    while len(nextgen) < pop_size:
-        tmp = select_fps(population, fitnesses)
-        nextgen.append(tmp[0])
-        nextgen.append(tmp[1])
+    s_fit = 0
+    cum_fit = []
+    for i in range(len(population)):
+        cum_fit.append(s_fit + fitnesses[i])
+        s_fit += fitnesses[i]
+    nextgen = random.choices(population, cum_weights=cum_fit, k=pop_size)
     return nextgen
 
 def survivor_trunc_min(population,tsp, pop_size):
@@ -307,8 +343,14 @@ def survivor_trunc_min(population,tsp, pop_size):
     surv = surv[:pop_size]
     return surv
 
-def survior_rank_min(population):
-    pass
+def survior_rank_min(population, tsp, pop_size):
+    nextgen = []
+    while len(nextgen) < pop_size:
+        tmp = rank_select_min(population, tsp)
+        nextgen.append(tmp[0])
+        nextgen.append(tmp[1])
+    return nextgen
+
 
 def survivor_bintour_min(population, tsp, pop_size):
     nextgen = []
@@ -321,25 +363,31 @@ def survivor_bintour_min(population, tsp, pop_size):
         nextgen.append(best)
     return nextgen
 
-def survivor_random():
-    pass
+def survivor_random(population, pop_size):
+    nextgen = random.choices(population, k=pop_size)
+    return nextgen
+        
 
-def survivor_select_min(population, fitnesses, tsp, pop_size, scheme):
+def survivor_select_min(population, tsp, pop_size, scheme):
     nextgen = []
-    rel_fit = rel_fit_min(population, tsp)
     if scheme == "trunc":
         nextgen = survivor_trunc_min(population, tsp, pop_size)
     elif scheme == "fps":
+        rel_fit = rel_fit_min(population, tsp)
         nextgen = survivor_fps(population, rel_fit, pop_size)
     elif scheme == "bintour":
         nextgen = survivor_bintour_min(population, tsp, pop_size)
+    elif scheme == "rand":
+        nextgen = survivor_random(population, pop_size)
+    elif scheme == "rank":
+        nextgen = survior_rank_min(population, tsp, pop_size)
     return nextgen
 
 #################################################################
 #################################################################
 
 
-def EA_tsp(tsp, parent_sel, surv_sel, num_gens = 500, num_offspring = 10, p_m=0.3, pop_size=30):
+def EA_tsp(tsp, parent_sel, surv_sel, num_gens = 2000, num_offspring = 35, p_m=0.5, pop_size=75):
     pop = init_tsp_pop(tsp_instance, pop_size)
     t = 0
     while t < num_gens:
@@ -348,7 +396,7 @@ def EA_tsp(tsp, parent_sel, surv_sel, num_gens = 500, num_offspring = 10, p_m=0.
         offspring = variate(offspring, p_m)
         pop += offspring 
         fits = fitnesses_tsp(pop, tsp)
-        pop = survivor_select_min(pop, fits, tsp, pop_size, surv_sel)
+        pop = survivor_select_min(pop, tsp, pop_size, surv_sel)
         t += 1
         #print("generation {}: {}".format(t, sum(fits)/len(fits)))
         print("generation {}: {}".format(t, min(fits)))
@@ -358,10 +406,15 @@ def EA_tsp(tsp, parent_sel, surv_sel, num_gens = 500, num_offspring = 10, p_m=0.
 
 tsp_instance = tsplib95.load('wi29.tsp')
 
-pop = init_tsp_pop(tsp_instance, 10)
-fit = fitnesses_tsp(pop, tsp_instance)
-print(fit)
+# pop = init_tsp_pop(tsp_instance, 10)
+# fit = fitnesses_tsp(pop, tsp_instance)
+# print(fit)
+# rfit = rel_fit_min(pop, tsp_instance)
+#print(rfit)
 #newpop = selectsurvivors_fps(pop, fit, 30)
 #newpop = survivor_bintour_min(pop, tsp_instance, 5)
 #print(fitnesses_tsp(newpop, tsp_instance))
-EA_tsp(tsp_instance, "bintour", "bintour")
+EA_tsp(tsp_instance, "trunc", "fps")
+#surv = survivor_fps(pop, rfit, 5)
+#print(fitnesses_tsp(surv, tsp_instance))
+
