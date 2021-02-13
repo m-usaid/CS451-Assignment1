@@ -63,26 +63,8 @@ def init_knpsk_pop(availableItems, maxWeight,popSize):
             i += 1
         
         chrom = (totalProfit, chrom)
-                
-            
         pop.append(chrom)
     
-    return pop
-
-    
-    
-
-    nodes = list(tsp.get_nodes())
-    random_path = [] 
-    p_len = len(nodes)
-    for i in range(n):
-        temp_nodes = list(tsp.get_nodes())
-        random_path = []
-        for j in range(p_len):
-            x = random.choice(temp_nodes)
-            random_path.append(x)
-            temp_nodes.remove(x)
-        pop.append(random_path)
     return pop
 
 
@@ -94,4 +76,73 @@ for p in pop:
 
 print("hello")
 
+##########################################################
+######### PARENT SELECTION SCHEMA (MINIMIZATION) ######### 
+##########################################################
 
+def select_fps_ks(population):
+    s_fit = 0
+    cum_fit = []
+    for i in range(len(population)):
+        cum_fit.append(s_fit + population[i][0])
+        s_fit += population[i][0]
+    parents = random.choices(population, cum_weights=cum_fit, k=2)
+    return parents
+
+
+def uniform_crossover_ks(parent: list, maxWeight):
+    """Crossover method to create child chromosome.
+
+    Args:
+        parent (list): A list of size 2 containing the parent chromosomes.
+
+    Returns:
+        [list]: A new child chromosome.
+    """
+    parent1 = parent[0][1]
+    parent2 = parent[1][1]
+    totalWeight = 0
+    totalProfit = 0
+    child = set()
+    while (len(parent1) > 0 and len(parent2) > 0 and totalWeight != maxWeight){
+
+        if (random < 0.5){
+            if ((parent1[0]+totalWeight) <= maxWeight ){
+                totalWeight += parent1[0][1]
+                totalProfit += parent1[0][0]
+                child.add(parent1.pop(0))
+            }
+        }
+        else{
+            if ((parent2[0]+totalWeight) <= maxWeight ){
+                totalWeight += parent2[0][1]
+                totalProfit += parent2[0][0]
+                child.add(parent2.pop(0))
+            }
+        }
+    
+    
+    }
+    
+    if (len(parent1) == 0 and totalWeight != maxWeight){
+        while (len(parent2) > 0 and totalWeight != maxWeight){
+            if ((parent2[1]+totalWeight) <= maxWeight ){
+                totalWeight += parent2[0][1]
+                totalProfit += parent2[0][0]
+                child.add(parent2.pop(0))
+            }
+        }
+    }
+    else if (len(parent2) == 0 and totalWeight != maxWeight){
+        while (len(parent1) > 0 and totalWeight != maxWeight){
+            if ((parent1[1]+totalWeight) <= maxWeight ){
+                totalWeight += parent1[0][1]
+                totalProfit += parent1[0][0]
+                child.add(parent1.pop(0))
+            }
+        }
+    }
+
+    return (totalProfit,list(child)) # Return the child
+
+    
