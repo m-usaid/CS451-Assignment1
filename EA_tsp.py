@@ -1,10 +1,3 @@
-## TO DO:
-#   - Implement parent selection:
-#       - Random 
-#   - Survivor selection schemes:
-#       - Fix FPS for survivors 
-#       - Random 
-
 
 import tsplib95
 import random
@@ -106,33 +99,6 @@ def rel_fit_min(population, tsp):
 ##########################################################
 ######### PARENT SELECTION SCHEMA (MINIMIZATION) ######### 
 ##########################################################
-
-# def select_fps(population, fitnesses):
-#     ### GENERAL -> USE FOR BOTH TSP AND KNPSCK
-#     """Generates parents based on fitness proportional scheme.
-
-#     Args:
-#         population (list): the population on which  FPS is applied 
-#         fitnesses (list): the fitnesses of the population on which FPS will be applied. 
-
-#     Returns:
-#         list: a list of size 2 containing two parent chromosomes.
-#     """
-#     parents = []
-#     divs = []
-#     probs = [fitnesses[i]/sum(fitnesses) for i in range(len(fitnesses))]
-
-#     s_probs = 0
-#     for i in range(len(probs)):
-#         divs.append(s_probs+probs[i])
-#         s_probs += probs[i]
-#     while len(parents) < 2:
-#         r = random.uniform(0, 1)
-#         for i in range(len(population)):
-#             if r > divs[i] and r < divs[i+1]:
-#                 parents.append(population[i]) 
-#                 continue 
-#     return parents 
 
 def select_fps(population, fitnesses):
     s_fit = 0
@@ -293,30 +259,6 @@ def variate(offspring, p_m):
 ######### SURVIVOR SELECTION SCHEMA ######### 
 #############################################
 
-## NOT WORKING
-# def survivor_fps(population, fitnesses, pop_size):
-#     nextgen = []
-#     while len(nextgen) < pop_size:
-#         tmp = select_fps(population, fitnesses)
-#         nextgen.append(tmp[0])
-#         nextgen.append(tmp[1])
-#     return nextgen
-
-# def survivor_fps(population, fitnesses, pop_size):
-#     next_gen = []
-#     divs = []
-#     probs = [fitnesses[i]/sum(fitnesses) for i in range(len(fitnesses))]
-#     s_probs = 0
-#     for i in range(len(probs)):
-#         divs.append(s_probs+probs[i])
-#         s_probs += probs[i]
-#     while len(next_gen) < pop_size:
-#         r = random.uniform(0, 1)
-#         for i in range(len(population)):
-#             if r > divs[i] and r < divs[i+1]:
-#                 next_gen.append(population[i]) 
-#                 continue 
-#     return next_gen
 
 def survivor_fps(population, fitnesses, pop_size):
     s_fit = 0
@@ -387,9 +329,11 @@ def survivor_select_min(population, tsp, pop_size, scheme):
 #################################################################
 
 
-def EA_tsp(tsp, parent_sel, surv_sel, num_gens = 2000, num_offspring = 35, p_m=0.5, pop_size=75):
-    pop = init_tsp_pop(tsp_instance, pop_size)
+def EA_tsp(tsp, parent_sel, surv_sel, num_gens, num_offspring = 30, p_m=0.5, pop_size=50):
+    pop = init_tsp_pop(tsp, pop_size)
     t = 0
+    bfs_vals = []
+    avg_vals = []
     while t < num_gens:
         fits = fitnesses_tsp(pop, tsp)
         offspring = create_offspring_min(pop, parent_sel, tsp, num_offspring)
@@ -398,23 +342,9 @@ def EA_tsp(tsp, parent_sel, surv_sel, num_gens = 2000, num_offspring = 35, p_m=0
         fits = fitnesses_tsp(pop, tsp)
         pop = survivor_select_min(pop, tsp, pop_size, surv_sel)
         t += 1
-        #print("generation {}: {}".format(t, sum(fits)/len(fits)))
-        print("generation {}: {}".format(t, min(fits)))
+        bfs_vals.append(min(fits))
+        avg_vals.append(sum(fits) / pop_size)
+    return avg_vals, bfs_vals
 
 ####################################################################
 ####################################################################
-
-tsp_instance = tsplib95.load('wi29.tsp')
-
-# pop = init_tsp_pop(tsp_instance, 10)
-# fit = fitnesses_tsp(pop, tsp_instance)
-# print(fit)
-# rfit = rel_fit_min(pop, tsp_instance)
-#print(rfit)
-#newpop = selectsurvivors_fps(pop, fit, 30)
-#newpop = survivor_bintour_min(pop, tsp_instance, 5)
-#print(fitnesses_tsp(newpop, tsp_instance))
-EA_tsp(tsp_instance, "trunc", "fps")
-#surv = survivor_fps(pop, rfit, 5)
-#print(fitnesses_tsp(surv, tsp_instance))
-
