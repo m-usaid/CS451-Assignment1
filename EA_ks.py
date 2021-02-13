@@ -1,9 +1,6 @@
-#   TO DO:
-#   - Implement population initialization 
-#   - Fitness functions 
 
 from EA_general_functions import *
-from random import *
+import random
 from copy import deepcopy
 
 ###########################################
@@ -28,7 +25,7 @@ def load_items_ks(file_name):
     maxWeight = items.pop(0)[1]
     f.close()
 
-    return (maxWeight,items)
+    return [maxWeight,items]
 
 
 def init_knpsk_pop(availableItems, maxWeight,popSize):
@@ -52,7 +49,7 @@ def init_knpsk_pop(availableItems, maxWeight,popSize):
         totalProfit = 0
         i = 0
         while (len(items) > 0):
-            randIndex = randint(0,len(items)-1)
+            randIndex = random.randint(0,len(items)-1)
             item = items.pop(randIndex) # remove item from items
             if (totalWeight+item[1]) <= maxWeight: # add to chromosone if it doesn't exceed weight
                 totalWeight += item[1]
@@ -74,12 +71,14 @@ def init_knpsk_pop(availableItems, maxWeight,popSize):
 ##########################################################
 
 def select_fps_ks(population):
+    print('pop1:',len(population))
     s_fit = 0
     cum_fit = []
     for i in range(len(population)):
         cum_fit.append(s_fit + population[i][0])
         s_fit += population[i][0]
     parents = random.choices(population, cum_weights=cum_fit, k=2)
+    print('pop2:',len(population))
     return parents
 
 
@@ -93,6 +92,7 @@ def uniform_crossover_ks(parent: list, maxWeight):
 
     Args:
         parent (list): A list of size 2 containing the parent chromosomes.
+        maxWeight: Maximum weight of Knap sack to optimise fitting item
 
     Returns:
         [list]: A new child chromosome.
@@ -101,40 +101,43 @@ def uniform_crossover_ks(parent: list, maxWeight):
     parent2 = parent[1][1]
     totalWeight = 0
     totalProfit = 0
-    child = set()
+    child = []
+    i = 0
     while (len(parent1) > 0 and len(parent2) > 0 and totalWeight != maxWeight):
-
-        if (random < 0.5):
-            if ((parent1[0]+totalWeight) <= maxWeight ):
-                totalWeight += parent1[0][1]
-                totalProfit += parent1[0][0]
-                child.add(parent1.pop(0))
+        if (random.randint(0,1) == 0):
+            item = parent1.pop(random.randint(0,len(parent1)-1))
+            if ((item[1]+totalWeight) <= maxWeight) and  item not in child:
+                totalWeight += item[1]
+                totalProfit += item[0]                
+                child.append(item)
 
 
         else:
-            if ((parent2[0]+totalWeight) <= maxWeight ):
-                totalWeight += parent2[0][1]
-                totalProfit += parent2[0][0]
-                child.add(parent2.pop(0))
-
+            item = parent2.pop(random.randint(0,len(parent2)-1))
+            if ((item[1]+totalWeight) <= maxWeight) and  item not in child:
+                totalWeight += item[1]
+                totalProfit += item[0]
+                child.append(item)
     
     if (len(parent1) == 0 and totalWeight != maxWeight):
         while (len(parent2) > 0 and totalWeight != maxWeight):
-            if ((parent2[1]+totalWeight) <= maxWeight ):
-                totalWeight += parent2[0][1]
-                totalProfit += parent2[0][0]
-                child.add(parent2.pop(0))
+            item = parent2.pop(random.randint(0,len(parent2)-1))
+            if ((item[1]+totalWeight) <= maxWeight) and  item not in child:
+                totalWeight += item[1]
+                totalProfit += item[0]    
+                child.append(item)
 
 
 
     elif (len(parent2) == 0 and totalWeight != maxWeight):
         while (len(parent1) > 0 and totalWeight != maxWeight):
-            if ((parent1[1]+totalWeight) <= maxWeight ):
-                totalWeight += parent1[0][1]
-                totalProfit += parent1[0][0]
-                child.add(parent1.pop(0))
+            item = parent1.pop(random.randint(0,len(parent1)-1))
+            if ((item[1]+totalWeight) <= maxWeight) and item not in child:
+                totalWeight += item[1]
+                totalProfit += item[0]
+                child.append(item)
 
-    return (totalProfit,list(child)) # Return the child
+    return [totalProfit,child] # Return the child
 
 ###############################
 ###### MUTATION METHOD ########
@@ -144,7 +147,7 @@ def mutation(chrom,allItems,maxWeight,numOfMutations):
     """ Method to create mutate chromosome. Removes an item randomly and inserts another item
         that was not part of the chromosome earlier
     Args:
-        chrom: A tuple containing the totalProfit and 
+        chrom: A nested list containing the totalProfit and a list of items in knapsack
         allItems (list): All available items of Knap sack with their profit 
                          and weight in the form of nested list
     Returns:
@@ -152,23 +155,35 @@ def mutation(chrom,allItems,maxWeight,numOfMutations):
     """
 
     for i in range(numOfMutations):
-        X = randint(0,len(chrom)-1) # Randomly select an item in chromosome
+        X = random.randint(0,len(chrom)-1) # Randomly select index of an item in chromosome
         chrom[0] -= chrom[1][X][0] # Subtract profit from the total Profit in chromosome
         chrom[1].pop(X) # Remove the item
+
+
+    totalWeight = sum(x[1] for x in chrom[1])
+    # Difference between allItems and chrom[1]
+    nonIncludedItems = []
     
-    nonIncludedItems = set(allItems).difference(set(chrom[1]))
-    totalWeight = 0
+    for i in allItems:
+        if i not in chrom[1]:
+            nonIncludedItems.append(i)
+
     while(len(nonIncludedItems) > 0):
-        item = nonIncludedItems.pop()
-        if (totalWeight+item[1]) <= maxWeight: # add to chromosone if it doesn't exceed weight
+        # Select and Remove an item from nonIncludedItems randomly
+        item = nonIncludedItems.pop(random.randint(0,len(nonIncludedItems)-1))
+        # add it to the chromosone if it doesn't exceed maximum weight
+        if (totalWeight+item[1]) <= maxWeight: 
             totalWeight += item[1]
             chrom[0] += item[0] # Add profit into the total Profit in chromosome
             chrom[1].append(item)
-    
+
     return chrom
 
+#############################################
+######### SURVIVOR SELECTION SCHEMA ######### 
+#############################################
 
-def survival_selection_ksp(sortedPoppulation,killCount,sparedChromos):
+def survival_selection_ksp(sortedPopulation,killCount,sparedChromos):
     """ Method to delete excess chromosome. It removes them based on 
         fitness propotional selection on a truncated set of least fit 
         chromosomes
@@ -182,16 +197,19 @@ def survival_selection_ksp(sortedPoppulation,killCount,sparedChromos):
         [list]: A poppulation with all the excess chromosomes removed
     """
 
-    if killCount > ( len(sortedPoppulation) - sparedChromos):
+    if killCount > ( len(sortedPopulation) - sparedChromos):
         raise Exception("kill count too large, reduce it!")
     
     for i in range(killCount):
-        chromo = select_fps_ks(sortedPoppulation[sparedChromos+1:])
-        sortedPoppulation.remove(chromo)
+        chromo = select_fps_ks(sortedPopulation[sparedChromos+1:])
+        sortedPopulation.remove(chromo)
 
-    return sortedPoppulation
+    return sortedPopulation
 
-def EA_ks(filename,popSize,generations,reproductionRate,sparedChromos):
+#################################################################
+#################################################################
+
+def EA_ks(filename,popSize,generations,reproductionRate,sparedChromos,mutationRate,numOfMutations=1):
 
     # Initialization
     maxWeight, items = load_items_ks(filename)
@@ -206,6 +224,11 @@ def EA_ks(filename,popSize,generations,reproductionRate,sparedChromos):
             # Generate Offspring from Crossover
             children.append( uniform_crossover_ks(parents,maxWeight) )
 
+        # Mutation
+        for i in range(len(children)):
+            if (random.random() < mutationRate):
+                children[i] = mutation(children[i],items,maxWeight,numOfMutations)
+
         # Add Offspring to poppulation
         pop.extend(children)
 
@@ -217,5 +240,5 @@ def EA_ks(filename,popSize,generations,reproductionRate,sparedChromos):
 
         print("Generation ",g,": ",pop[-1][0])
 
-
+    print("Optimal Chromosome: ", pop[-1])
 
