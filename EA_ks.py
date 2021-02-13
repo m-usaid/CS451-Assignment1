@@ -26,7 +26,6 @@ def load_items_ks(file_name):
     items = f.readlines()
     items = [[ int(i) for i in x.split()] for x in items]
     maxWeight = items.pop(0)[1]
-    print(items)
     f.close()
 
     return (maxWeight,items)
@@ -48,7 +47,6 @@ def init_knpsk_pop(availableItems, maxWeight,popSize):
     pop = []
     for i in range(popSize):
         items = deepcopy(availableItems)
-        print("items: ",availableItems)
         chrom = []
         totalWeight = 0
         totalProfit = 0
@@ -69,12 +67,7 @@ def init_knpsk_pop(availableItems, maxWeight,popSize):
 
 
 
-maxWeight, items = load_items_ks("f7_l-d_kp_7_50")
-pop = init_knpsk_pop(items, maxWeight, 4)
-for p in pop:
-    print(p)
 
-print("hello")
 
 ##########################################################
 ######### PARENT SELECTION SCHEMA (MINIMIZATION) ######### 
@@ -124,10 +117,6 @@ def uniform_crossover_ks(parent: list, maxWeight):
                 totalProfit += parent2[0][0]
                 child.add(parent2.pop(0))
 
-
-    
-    
-
     
     if (len(parent1) == 0 and totalWeight != maxWeight):
         while (len(parent2) > 0 and totalWeight != maxWeight):
@@ -154,15 +143,14 @@ def uniform_crossover_ks(parent: list, maxWeight):
 def mutation(chrom,allItems,maxWeight,numOfMutations):
     """ Method to create mutate chromosome. Removes an item randomly and inserts another item
         that was not part of the chromosome earlier
-
     Args:
         chrom: A tuple containing the totalProfit and 
         allItems (list): All available items of Knap sack with their profit 
                          and weight in the form of nested list
-
     Returns:
         [list]: A new child chromosome.
     """
+
     for i in range(numOfMutations):
         X = randint(0,len(chrom)-1) # Randomly select an item in chromosome
         chrom[0] -= chrom[1][X][0] # Subtract profit from the total Profit in chromosome
@@ -178,3 +166,56 @@ def mutation(chrom,allItems,maxWeight,numOfMutations):
             chrom[1].append(item)
     
     return chrom
+
+
+def survival_selection_ksp(sortedPoppulation,killCount,sparedChromos):
+    """ Method to delete excess chromosome. It removes them based on 
+        fitness propotional selection on a truncated set of least fit 
+        chromosomes
+
+    Args:
+        sortedPoppulation: A poppulation sorted descendingly based on fitness
+        killCount: Number of excess chromosones in poppulation to remove
+        sparedChromos: Num of top chromosomes which will not be selected for removal
+
+    Returns:
+        [list]: A poppulation with all the excess chromosomes removed
+    """
+
+    if killCount > ( len(sortedPoppulation) - sparedChromos):
+        raise Exception("kill count too large, reduce it!")
+    
+    for i in range(killCount):
+        chromo = select_fps_ks(sortedPoppulation[sparedChromos+1:])
+        sortedPoppulation.remove(chromo)
+
+    return sortedPoppulation
+
+def EA_ks(filename,popSize,generations,reproductionRate,sparedChromos):
+
+    # Initialization
+    maxWeight, items = load_items_ks(filename)
+    pop = init_knpsk_pop(items, maxWeight, popSize)
+    
+    for g in range(generations):
+
+        children = []
+        for c in range(reproductionRate):
+            # Parent Selection
+            parents = select_fps_ks(pop)
+            # Generate Offspring from Crossover
+            children.append( uniform_crossover_ks(parents,maxWeight) )
+
+        # Add Offspring to poppulation
+        pop.extend(children)
+
+        # Sort poppulation based on fitness
+        sorted(pop,key=lambda x: x[0])
+
+        # Kill Excess Chromosones based on survival selection
+        pop = survival_selection_ksp(pop,reproductionRate,sparedChromos)
+
+        print("Generation ",g,": ",pop[-1][0])
+
+
+

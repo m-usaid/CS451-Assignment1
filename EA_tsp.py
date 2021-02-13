@@ -35,9 +35,6 @@ def init_tsp_pop(tsp, n):
     return pop
 
 
-def init_knpsk_pop():
-    pass
-
 ######################################
 ######### FITNESS EVALUATION ######### 
 ######################################
