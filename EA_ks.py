@@ -7,8 +7,8 @@ from random import *
 from copy import deepcopy
 
 ###########################################
-######### POPULATION INITIALIZATION ######### 
-#############################################
+######### POPULATION INITIALIZATION ####### 
+###########################################
 
 def load_items_ks(file_name):
     """ Loads poppulation from folder for knapsack
@@ -90,6 +90,11 @@ def select_fps_ks(population):
     return parents
 
 
+########################################
+######### REPRODUCTION METHODS ######### 
+########################################
+
+
 def uniform_crossover_ks(parent: list, maxWeight):
     """Crossover method to create child chromosome.
 
@@ -104,45 +109,72 @@ def uniform_crossover_ks(parent: list, maxWeight):
     totalWeight = 0
     totalProfit = 0
     child = set()
-    while (len(parent1) > 0 and len(parent2) > 0 and totalWeight != maxWeight){
+    while (len(parent1) > 0 and len(parent2) > 0 and totalWeight != maxWeight):
 
-        if (random < 0.5){
-            if ((parent1[0]+totalWeight) <= maxWeight ){
+        if (random < 0.5):
+            if ((parent1[0]+totalWeight) <= maxWeight ):
                 totalWeight += parent1[0][1]
                 totalProfit += parent1[0][0]
                 child.add(parent1.pop(0))
-            }
-        }
-        else{
-            if ((parent2[0]+totalWeight) <= maxWeight ){
+
+
+        else:
+            if ((parent2[0]+totalWeight) <= maxWeight ):
                 totalWeight += parent2[0][1]
                 totalProfit += parent2[0][0]
                 child.add(parent2.pop(0))
-            }
-        }
+
+
     
     
-    }
+
     
-    if (len(parent1) == 0 and totalWeight != maxWeight){
-        while (len(parent2) > 0 and totalWeight != maxWeight){
-            if ((parent2[1]+totalWeight) <= maxWeight ){
+    if (len(parent1) == 0 and totalWeight != maxWeight):
+        while (len(parent2) > 0 and totalWeight != maxWeight):
+            if ((parent2[1]+totalWeight) <= maxWeight ):
                 totalWeight += parent2[0][1]
                 totalProfit += parent2[0][0]
                 child.add(parent2.pop(0))
-            }
-        }
-    }
-    else if (len(parent2) == 0 and totalWeight != maxWeight){
-        while (len(parent1) > 0 and totalWeight != maxWeight){
-            if ((parent1[1]+totalWeight) <= maxWeight ){
+
+
+
+    elif (len(parent2) == 0 and totalWeight != maxWeight):
+        while (len(parent1) > 0 and totalWeight != maxWeight):
+            if ((parent1[1]+totalWeight) <= maxWeight ):
                 totalWeight += parent1[0][1]
                 totalProfit += parent1[0][0]
                 child.add(parent1.pop(0))
-            }
-        }
-    }
 
     return (totalProfit,list(child)) # Return the child
 
+###############################
+###### MUTATION METHOD ########
+###############################
+
+def mutation(chrom,allItems,maxWeight,numOfMutations):
+    """ Method to create mutate chromosome. Removes an item randomly and inserts another item
+        that was not part of the chromosome earlier
+
+    Args:
+        chrom: A tuple containing the totalProfit and 
+        allItems (list): All available items of Knap sack with their profit 
+                         and weight in the form of nested list
+
+    Returns:
+        [list]: A new child chromosome.
+    """
+    for i in range(numOfMutations):
+        X = randint(0,len(chrom)-1) # Randomly select an item in chromosome
+        chrom[0] -= chrom[1][X][0] # Subtract profit from the total Profit in chromosome
+        chrom[1].pop(X) # Remove the item
     
+    nonIncludedItems = set(allItems).difference(set(chrom[1]))
+    totalWeight = 0
+    while(len(nonIncludedItems) > 0):
+        item = nonIncludedItems.pop()
+        if (totalWeight+item[1]) <= maxWeight: # add to chromosone if it doesn't exceed weight
+            totalWeight += item[1]
+            chrom[0] += item[0] # Add profit into the total Profit in chromosome
+            chrom[1].append(item)
+    
+    return chrom
