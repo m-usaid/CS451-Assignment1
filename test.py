@@ -38,4 +38,4 @@ print("hello")
 
 
 # EA_ks(filename,popSize,generations,reproductionRate,sparedChromos,mutationRate,numOfMutations=1)
-EA_ks(s1,30,100,10,5,0.1,1)
+EA_ks(s2,10,100,10,5,0.1,1)

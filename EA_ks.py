@@ -245,11 +245,10 @@ def EA_ks(filename,popSize,generations,reproductionRate,sparedChromos,mutationRa
         # Sort poppulation based on fitness
         pop.sort(key=lambda x: x[0],reverse=True)
 
-        print("s5")
         # Kill Excess Chromosones based on survival selection
         pop = survival_selection_ksp(pop,reproductionRate,sparedChromos)
         # Sort poppulation based on fitness
-        print("s6")
+
         pop.sort(key=lambda x: x[0],reverse=True)
         SumFitnesess = sum(x[0] for x in pop)
         print("Generation",g,":","BF =",pop[0][0],"LF = ",pop[-1][0],"AF =", SumFitnesess/len(pop),"len:",len(pop))
