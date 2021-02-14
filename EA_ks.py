@@ -211,7 +211,8 @@ def EA_ks(filename,popSize,generations,reproductionRate,sparedChromos,mutationRa
     # Initialization
     maxWeight, items = load_items_ks(filename)
     pop = init_knpsk_pop(items, maxWeight, popSize)
-
+    BF_values = []
+    AF_values = []
     for g in range(generations):
 
         children = []
@@ -251,7 +252,11 @@ def EA_ks(filename,popSize,generations,reproductionRate,sparedChromos,mutationRa
 
         pop.sort(key=lambda x: x[0],reverse=True)
         SumFitnesess = sum(x[0] for x in pop)
-        print("Generation",g,":","BF =",pop[0][0],"LF = ",pop[-1][0],"AF =", SumFitnesess/len(pop),"len:",len(pop))
+        BF_values.append(pop[0][0])
+        AF_values.append(SumFitnesess/len(pop))
+        print("Generation",g,":","BF =",pop[0][0],"LF = ",pop[-1][0],"AF =", SumFitnesess/len(pop))
         
     print("Optimal Chromosome: ", pop[0])
+
+    return (BF_values,AF_values)
 
