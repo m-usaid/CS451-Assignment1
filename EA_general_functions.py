@@ -6,13 +6,19 @@
 
 import random
 
-def select_fps(population, fitnesses):
+def cum_fitness(population,fitnesses):
     s_fit = 0
     cum_fit = []
     for i in range(len(population)):
         cum_fit.append(s_fit + fitnesses[i])
         s_fit += fitnesses[i]
-    parents = random.choices(population, cum_weights=cum_fit, k=2)
+    return cum_fit
+
+def select_fps(population, fitnesses, num=2, cum_fit = None):
+    if cum_fit == None:
+        cum_fit = cum_fitness(population,fitnesses)
+
+    parents = random.choices(population, cum_weights=cum_fit, k=num)
     return parents
 
 

@@ -57,8 +57,9 @@ def init_knpsk_pop(availableItems, maxWeight,popSize):
                 chrom.append(item)
             i += 1
         
-        chrom = (totalProfit, chrom)
+        chrom = [totalProfit, chrom]
         pop.append(chrom)
+    
     
     return pop
 
@@ -66,21 +67,12 @@ def init_knpsk_pop(availableItems, maxWeight,popSize):
 
 
 
-##########################################################
-######### PARENT SELECTION SCHEMA (MINIMIZATION) ######### 
-##########################################################
+###################################################
+######### FITNESS FUNCTION SCHEMA #################
+###################################################
 
-def select_fps_ks(population):
-    print('pop1:',len(population))
-    s_fit = 0
-    cum_fit = []
-    for i in range(len(population)):
-        cum_fit.append(s_fit + population[i][0])
-        s_fit += population[i][0]
-    parents = random.choices(population, cum_weights=cum_fit, k=2)
-    print('pop2:',len(population))
-    return parents
-
+def fitnesses_ks(pop):
+    return [x[0] for x in pop]
 
 ########################################
 ######### REPRODUCTION METHODS ######### 
@@ -97,8 +89,8 @@ def uniform_crossover_ks(parent: list, maxWeight):
     Returns:
         [list]: A new child chromosome.
     """
-    parent1 = parent[0][1]
-    parent2 = parent[1][1]
+    parent1 = deepcopy(parent[0][1])
+    parent2 = deepcopy(parent[1][1])
     totalWeight = 0
     totalProfit = 0
     child = []
@@ -106,7 +98,7 @@ def uniform_crossover_ks(parent: list, maxWeight):
     while (len(parent1) > 0 and len(parent2) > 0 and totalWeight != maxWeight):
         if (random.randint(0,1) == 0):
             item = parent1.pop(random.randint(0,len(parent1)-1))
-            if ((item[1]+totalWeight) <= maxWeight) and  item not in child:
+            if ((item[1]+totalWeight) <= maxWeight) and item not in child:
                 totalWeight += item[1]
                 totalProfit += item[0]                
                 child.append(item)
@@ -196,13 +188,18 @@ def survival_selection_ksp(sortedPopulation,killCount,sparedChromos):
     Returns:
         [list]: A poppulation with all the excess chromosomes removed
     """
-
-    if killCount > ( len(sortedPopulation) - sparedChromos):
+    
+    if killCount >= ( len(sortedPopulation) - sparedChromos):
         raise Exception("kill count too large, reduce it!")
     
-    for i in range(killCount):
-        chromo = select_fps_ks(sortedPopulation[sparedChromos+1:])
-        sortedPopulation.remove(chromo)
+    
+    truncatedPopulation = sortedPopulation[sparedChromos+1:]
+    Len = len(truncatedPopulation) - killCount
+
+    fitnesses = fitnesses_ks(truncatedPopulation)
+    survivors = select_fps(truncatedPopulation , fitnesses, Len)
+    
+    sortedPopulation = sortedPopulation[:sparedChromos+1] + survivors
 
     return sortedPopulation
 
@@ -214,31 +211,48 @@ def EA_ks(filename,popSize,generations,reproductionRate,sparedChromos,mutationRa
     # Initialization
     maxWeight, items = load_items_ks(filename)
     pop = init_knpsk_pop(items, maxWeight, popSize)
-    
+
     for g in range(generations):
 
         children = []
-        for c in range(reproductionRate):
-            # Parent Selection
-            parents = select_fps_ks(pop)
+        # Fitness Evaluation (In this case this has been stored in the poppulation already)
+        fitnesses = fitnesses_ks(pop)
+        # Parent Selection
+        parents = select_fps(pop,fitnesses,2*reproductionRate)
+        # Make parents pairs for reproduction
+        parentPairs = [parents[x:x+2] for x in range(0, len(parents), 2)]
+
+        
+
+        for parents in parentPairs:
             # Generate Offspring from Crossover
             children.append( uniform_crossover_ks(parents,maxWeight) )
 
+        
         # Mutation
         for i in range(len(children)):
             if (random.random() < mutationRate):
                 children[i] = mutation(children[i],items,maxWeight,numOfMutations)
 
         # Add Offspring to poppulation
+
         pop.extend(children)
 
-        # Sort poppulation based on fitness
-        sorted(pop,key=lambda x: x[0])
+        # print("Pop before sort")
+        # for p in pop:
+        #     print(p)
 
+        # Sort poppulation based on fitness
+        pop.sort(key=lambda x: x[0],reverse=True)
+
+        print("s5")
         # Kill Excess Chromosones based on survival selection
         pop = survival_selection_ksp(pop,reproductionRate,sparedChromos)
-
-        print("Generation ",g,": ",pop[-1][0])
-
-    print("Optimal Chromosome: ", pop[-1])
+        # Sort poppulation based on fitness
+        print("s6")
+        pop.sort(key=lambda x: x[0],reverse=True)
+        SumFitnesess = sum(x[0] for x in pop)
+        print("Generation",g,":","BF =",pop[0][0],"LF = ",pop[-1][0],"AF =", SumFitnesess/len(pop),"len:",len(pop))
+        
+    print("Optimal Chromosome: ", pop[0])
 
